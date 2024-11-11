@@ -35,6 +35,30 @@ class LogisticRegressionTemplate:
 - **Binary Classification**: Predicting customer churn (churn vs. no churn).
 - **Multi-class Classification**: Categorizing products into different groups.
 
+```gherkin
+Feature: Customer Segmentation
+  As a data scientist
+  I want to use a classification model to segment customers
+  So that I can group them based on purchasing behavior
+
+  Scenario: Group customers into segments
+    Given a dataset of customer purchasing history
+    When I apply the classification model to identify segments
+    Then the model should group customers into distinct segments
+    And each segment should represent a unique purchasing behavior
+
+Feature: Classification with Feature Importance
+  As a business analyst
+  I want to identify important features in a classification model
+  So that I can understand key predictors in complex datasets
+
+  Scenario: Identify key predictors in the dataset
+    Given a complex dataset with multiple features
+    When I use the Random Forest model to classify data
+    Then the model should calculate feature importance scores
+    And display the top predictors influencing the classification
+
+```
 ---
 
 ## Random Forest Template

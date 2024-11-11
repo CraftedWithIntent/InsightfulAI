@@ -34,6 +34,30 @@ class LinearRegressionTemplate:
 - **Sales Forecasting**: Predicting future sales based on historical data.
 - **House Price Prediction**: Estimating house prices using features like square footage, location, etc.
 
+```gherkin
+Feature: Sales Forecasting
+  As a sales analyst
+  I want to use a regression model to predict future sales
+  So that I can plan inventory and marketing strategies
+
+  Scenario: Forecast future sales based on historical data
+    Given a dataset with historical sales data and seasonal trends
+    When I apply the Linear Regression model to forecast sales
+    Then the model should predict future sales values
+    And the predictions should help in planning inventory and marketing
+
+Feature: House Price Prediction
+  As a real estate analyst
+  I want to use a regression model to estimate house prices
+  So that I can provide price estimates based on property features
+
+  Scenario: Estimate house prices based on property features
+    Given a dataset of properties with features like square footage, location, and number of rooms
+    When I apply the Ridge Regression model to predict house prices
+    Then the model should estimate a price for each property
+    And the estimates should reflect the impact of each feature on the price
+
+```
 ---
 
 ## Ridge Regression Template
