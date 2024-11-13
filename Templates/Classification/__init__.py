@@ -3,14 +3,22 @@ InsightfulAI - Classification Package
 =====================================
 
 Project: InsightfulAI
-Description: This package includes templates for classification models, such as Logistic Regression and 
-             Random Forest, with customizable options and feature scaling.
+Description: This package provides templates for classification models, including Logistic Regression 
+             and Random Forest, with support for synchronous and asynchronous operations, batch processing, 
+             customizable parameters, and retry logic for robust model training.
 
 Modules:
-- logistic_regression.py: Logistic Regression model for binary and multi-class classification.
-- Add other classification templates here as they are developed.
+- logistic_regression.py: Encapsulated Logistic Regression model for binary and multi-class classification.
+- random_forest.py: Encapsulated Random Forest model with flexible hyperparameters and batch support.
 
+Usage:
+- LogisticRegressionTemplate: A customizable logistic regression model.
+- RandomForestTemplate: A flexible random forest model for classification tasks.
+
+Add additional classification templates as they are developed to expand the InsightfulAI library.
 """
 
 from .logistic_regression import LogisticRegressionTemplate
-# from .random_forest import RandomForestTemplate  # Uncomment or add when new templates are available
+from .random_forest import RandomForestTemplate
+
+__all__ = ["LogisticRegressionTemplate", "RandomForestTemplate"]
