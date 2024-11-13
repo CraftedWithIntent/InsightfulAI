@@ -25,8 +25,10 @@ class TestRandomForestTelcoCustomerChurn(unittest.TestCase):
         """
         Set up the Telco Customer Churn dataset and initialize the Random Forest model.
         """
+        print("\nSetting up Telco Customer Churn data and Random Forest model...")
+
         # Load the Telco Customer Churn dataset
-        self.data = pd.read_csv('tests/datasets/WA_Fn-UseC_-Telco-Customer-Churn.csv')  # Replace with the actual path
+        self.data = pd.read_csv('tests/datasets/kaggle/Telco-Customer-Churn.csv')  # Replace with the actual path
         
         # Prepare feature and target variables
         self.data['Churn'] = self.data['Churn'].apply(lambda x: 1 if x == 'Yes' else 0)
@@ -53,25 +55,31 @@ class TestRandomForestTelcoCustomerChurn(unittest.TestCase):
         
         # Initialize RandomForestTemplate with the desired parameters
         self.model = RandomForestTemplate(n_estimators=100, max_depth=10)
+        print("Setup completed.\n")
 
     def test_fit(self):
         """Test model training without errors."""
+        print("Testing model training...")
         self.model.fit(self.X_train, self.y_train)
-        print("Model training completed successfully.")
+        print("Model training completed successfully.\n")
 
     def test_predict(self):
         """Test model prediction after training."""
+        print("Testing model prediction...")
         self.model.fit(self.X_train, self.y_train)
         predictions = self.model.predict(self.X_test)
         print(f"Predictions: {predictions}")
         self.assertEqual(len(predictions), len(self.y_test), "Prediction length mismatch.")
+        print("Prediction test completed successfully.\n")
 
     def test_evaluate(self):
         """Test model evaluation accuracy on test data."""
+        print("Testing model evaluation...")
         self.model.fit(self.X_train, self.y_train)
         accuracy = self.model.evaluate(self.X_test, self.y_test)
         print(f"Evaluation accuracy: {accuracy:.2f}")
         self.assertTrue(0 <= accuracy <= 1, "Accuracy should be between 0 and 1.")
+        print("Evaluation test completed successfully.\n")
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
