@@ -4,8 +4,8 @@ InsightfulAI - Logistic Regression Test for Binary Classification Datasets
 
 Project: InsightfulAI
 Repository: https://github.com/CraftedWithIntent/InsightfulAI
-Author: Your Name
-Date: YYYY-MM-DD
+Author: Philip Thomas
+Date: 2024-11-13
 
 Description:
 This test suite validates the LogisticRegressionTemplate for various binary classification
@@ -29,7 +29,7 @@ class TestLogisticRegressionBinaryClassification(unittest.TestCase):
         print("\nSetting up binary classification test data and model instance...")
 
         # Specify the dataset file path
-        dataset_path = "tests/datasets/diabetes.csv"  # Update the file path as needed
+        dataset_path = "tests/datasets/kaggle/Diabetes.csv"  # Update the file path as needed
         
         # Load and preprocess the dataset
         self.X_train, self.X_test, self.y_train, self.y_test = self.load_and_preprocess_data(dataset_path)
