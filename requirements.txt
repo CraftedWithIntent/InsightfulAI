@@ -1,0 +1,17 @@
+# Core libraries
+numpy               # For numerical operations and data manipulation
+scikit-learn        # For machine learning algorithms and model evaluation
+
+# Testing libraries
+unittest-xml-reporting  # Optional, adds XML reporting for unittest (useful for CI/CD)
+pytest                 # For more flexible and advanced testing capabilities
+
+# Optional: Logging and monitoring
+opentelemetry-api      # Core API for OpenTelemetry
+opentelemetry-sdk      # SDK for implementing telemetry
+opentelemetry-instrumentation  # Instrumentation package for OpenTelemetry
+
+# Optional: Async support (if required)
+asyncio                       # For async support (standard library in Python 3.7+)
+
+pandas
