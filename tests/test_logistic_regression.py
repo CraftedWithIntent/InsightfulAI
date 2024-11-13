@@ -4,8 +4,8 @@ InsightfulAI - Logistic Regression Test for Binary Classification Datasets
 
 Project: InsightfulAI
 Repository: https://github.com/CraftedWithIntent/InsightfulAI
-Author: Your Name
-Date: YYYY-MM-DD
+Author: Philip Thomas
+Date: 2024-11-13
 
 Description:
 This test suite validates the LogisticRegressionTemplate for various binary classification

@@ -4,8 +4,8 @@ InsightfulAI - Logistic Regression Template with Sync and Async Retry Logic
 
 Project: InsightfulAI
 Repository: https://github.com/CraftedWithIntent/InsightfulAI
-Author: Your Name
-Date: YYYY-MM-DD
+Author: Philip Thomas
+Date: 2024-11-13
 Description: This module provides a customizable Logistic Regression template for binary and multi-class 
              classification tasks, with sync and async support, enhanced error handling, and configurable 
              retry logic to avoid duplicate processing.

@@ -4,8 +4,8 @@ InsightfulAI - Random Forest Template with Sync, Async, and OpenTelemetry Suppor
 
 Project: InsightfulAI
 Repository: https://github.com/CraftedWithIntent/InsightfulAI
-Author: Your Name
-Date: YYYY-MM-DD
+Author: Philip Thomas
+Date: 2024-11-13
 Description: This module provides a customizable Random Forest template for binary and multi-class 
              classification tasks, with both sync and async support, retry logic, batch processing, 
              and OpenTelemetry tracing.
