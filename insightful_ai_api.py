@@ -29,7 +29,8 @@ class InsightfulAI:
     # Initialize API with an NLP model for text classification
     api_nlp = InsightfulAI(model_type="nlp", max_features=500, solver='lbfgs')
     api_nlp.fit(text_batches, label_batches)
-    async_predictions = await api_nlp.async_predict_batch(text_batches)
+    async_predictions = await api_nlp.async_predict(text_batches)
+    async_accuracy = await api_nlp.async_evaluate(text_batches, label_batches)
     ```
     """
 
@@ -100,7 +101,7 @@ class InsightfulAI:
         await self.model.async_fit(X_batches, y_batches)
         return self
 
-    async def async_predict_batch(self, X_batches):
+    async def async_predict(self, X_batches):
         """
         Asynchronously predict labels or values for multiple batches of data.
 
@@ -110,4 +111,17 @@ class InsightfulAI:
         Returns:
         - List of predictions for each batch of data in X_batches.
         """
-        return await self.model.async_predict_batch(X_batches)
+        return await self.model.async_predict(X_batches)
+
+    async def async_evaluate(self, X_batches, y_batches):
+        """
+        Asynchronously evaluate the model on multiple batches of data to return accuracy or another metric.
+
+        Parameters:
+        - X_batches: List of feature matrices for evaluation.
+        - y_batches: List of true label vectors for each batch of data.
+
+        Returns:
+        - List of evaluation scores (e.g., accuracy) for each batch.
+        """
+        return await self.model.async_evaluate(X_batches, y_batches)

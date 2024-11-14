@@ -78,12 +78,12 @@ Take advantage of batch asynchronous processing to make predictions on large bat
 import asyncio
 
 # Async batch prediction
-async def async_predict_batches():
-    predictions = await model.async_predict_batch([X_test_batch_1, X_test_batch_2])
+async def async_predictes():
+    predictions = await model.async_predict([X_test_batch_1, X_test_batch_2])
     print("Batch Predictions:", predictions)
 
 # Run async batch prediction
-asyncio.run(async_predict_batches())
+asyncio.run(async_predictes())
 ```
 
 ### Step 5: Evaluate Model Performance

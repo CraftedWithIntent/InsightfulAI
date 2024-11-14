@@ -135,11 +135,11 @@ class RandomForestTemplate:
             tasks = [self._async_fit(X, y) for X, y in zip(X_batches, y_batches)]
             await asyncio.gather(*tasks)
 
-    async def async_predict_batch(self, X_batches: list) -> list:
+    async def async_predict(self, X_batches: list) -> list:
         """
         Asynchronously predicts for multiple data batches with retry logic and OpenTelemetry tracing.
         """
-        with tracer.start_as_current_span("async_predict_batch"):
+        with tracer.start_as_current_span("async_predict"):
             tasks = [self._async_predict(X) for X in X_batches]
             return await asyncio.gather(*tasks)
 

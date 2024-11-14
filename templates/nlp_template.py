@@ -21,6 +21,7 @@ from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProces
 from retry.retry_decorator import retry_exponential_backoff
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
 from typing import List
 
 # Configure OpenTelemetry tracing
@@ -53,6 +54,15 @@ class NLPTemplate:
             span.set_attribute("custom.operation", "predict")
             return predictions
 
+    def evaluate(self, texts: List[str], labels: List[int]) -> float:
+        """Synchronously evaluate model accuracy."""
+        with tracer.start_as_current_span("NLPTemplate.evaluate") as span:
+            predictions = self.predict(texts)
+            accuracy = accuracy_score(labels, predictions)
+            span.set_attribute("custom.operation", "evaluate")
+            logging.info(f"Model evaluation accuracy: {accuracy:.2f}")
+            return accuracy
+
     @retry_exponential_backoff
     async def async_fit(self, text_batches: List[List[str]], label_batches: List[List[int]]):
         """Asynchronously fit the model with multiple batches."""
@@ -68,12 +78,12 @@ class NLPTemplate:
             self.model.fit(X, labels)
 
     @retry_exponential_backoff
-    async def async_predict_batch(self, text_batches: List[List[str]]) -> List[List[int]]:
+    async def async_predict(self, text_batches: List[List[str]]) -> List[List[int]]:
         """Asynchronously predict on multiple batches."""
-        with tracer.start_as_current_span("NLPTemplate.async_predict_batch") as span:
+        with tracer.start_as_current_span("NLPTemplate.async_predict") as span:
             tasks = [self._async_predict(texts) for texts in text_batches]
             results = await asyncio.gather(*tasks)
-            span.set_attribute("custom.operation", "async_predict_batch")
+            span.set_attribute("custom.operation", "async_predict")
             return results
 
     async def _async_predict(self, texts: List[str]) -> List[int]:
@@ -81,3 +91,20 @@ class NLPTemplate:
         with tracer.start_as_current_span("NLPTemplate._async_predict"):
             X = self.vectorizer.transform(texts)
             return self.model.predict(X).tolist()
+
+    @retry_exponential_backoff
+    async def async_evaluate(self, text_batches: List[List[str]], label_batches: List[List[int]]) -> List[float]:
+        """Asynchronously evaluate model accuracy on multiple batches."""
+        with tracer.start_as_current_span("NLPTemplate.async_evaluate") as span:
+            tasks = [self._async_evaluate(texts, labels) for texts, labels in zip(text_batches, label_batches)]
+            accuracies = await asyncio.gather(*tasks)
+            span.set_attribute("custom.operation", "async_evaluate")
+            return accuracies
+
+    async def _async_evaluate(self, texts: List[str], labels: List[int]) -> float:
+        """Helper async function to evaluate a single batch."""
+        with tracer.start_as_current_span("NLPTemplate._async_evaluate"):
+            predictions = await self._async_predict(texts)
+            accuracy = accuracy_score(labels, predictions)
+            logging.info(f"Batch evaluation accuracy: {accuracy:.2f}")
+            return accuracy
