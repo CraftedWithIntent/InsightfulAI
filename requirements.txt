@@ -5,6 +5,7 @@ scikit-learn        # For machine learning algorithms and model evaluation
 # Testing libraries
 unittest-xml-reporting  # Optional, adds XML reporting for unittest (useful for CI/CD)
 pytest                 # For more flexible and advanced testing capabilities
+pandas
 
 # Optional: Logging and monitoring
 opentelemetry-api      # Core API for OpenTelemetry
@@ -13,5 +14,3 @@ opentelemetry-instrumentation  # Instrumentation package for OpenTelemetry
 
 # Optional: Async support (if required)
 asyncio                       # For async support (standard library in Python 3.7+)
-
-pandas
