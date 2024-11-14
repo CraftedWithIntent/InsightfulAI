@@ -20,11 +20,13 @@ Add additional classification templates as they are developed to expand the Insi
 
 from .logistic_regression_model import LogisticRegressionModel
 from .random_forest_model import RandomForestModel
+from .nlp_model import NLPModel
 from .model_interface import ModelInterface
 
 __all__ = [
     "LogisticRegressionModel",
     "RandomForestModel",
+    "NLPModel",
     "ModelInterface",
 ]
 

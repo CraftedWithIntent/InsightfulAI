@@ -127,11 +127,11 @@ class RandomForestTemplate:
             return accuracies
 
     # Asynchronous Batch Processing
-    async def async_fit_batch(self, X_batches: list, y_batches: list) -> None:
+    async def async_fit(self, X_batches: list, y_batches: list) -> None:
         """
         Asynchronously trains the model on multiple data batches with retry logic and OpenTelemetry tracing.
         """
-        with tracer.start_as_current_span("async_fit_batch"):
+        with tracer.start_as_current_span("async_fit"):
             tasks = [self._async_fit(X, y) for X, y in zip(X_batches, y_batches)]
             await asyncio.gather(*tasks)
 
