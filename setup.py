@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="InsightfulAI",                          # Package name
-    version="0.1.0a1",                              # Initial version
+    version="0.2.0a1",                              # Initial version
     author="Philip Thomas",
     description="A simple ML package for classification and regression",
     long_description=open("README.md", encoding="utf-8").read(),  # Specify UTF-8 encoding
