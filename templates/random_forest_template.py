@@ -26,7 +26,10 @@ import asyncio
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
-from .retry_decorator import retry_with_backoff
+from retry.retry_decorator import retry_exponential_backoff
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
 # Set up OpenTelemetry
 trace.set_tracer_provider(TracerProvider())
@@ -61,7 +64,7 @@ class RandomForestTemplate:
         self.model = RandomForestClassifier(n_estimators=self.n_estimators, max_depth=self.max_depth)
         self.scaler = StandardScaler()
 
-    @retry_with_backoff
+    @retry_exponential_backoff
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """
         Synchronously trains the Random Forest model with retry logic and OpenTelemetry tracing.
@@ -73,7 +76,7 @@ class RandomForestTemplate:
             self.model.fit(X_scaled, y)
             logging.info("Model training completed successfully.")
 
-    @retry_with_backoff
+    @retry_exponential_backoff
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
         Synchronously predicts class labels for input data with retry logic and OpenTelemetry tracing.
@@ -86,7 +89,7 @@ class RandomForestTemplate:
             logging.info("Prediction completed successfully.")
             return predictions
 
-    @retry_with_backoff
+    @retry_exponential_backoff
     def evaluate(self, X: np.ndarray, y: np.ndarray) -> float:
         """
         Synchronously evaluates the model on input data and true labels with retry logic and OpenTelemetry tracing.
@@ -149,7 +152,7 @@ class RandomForestTemplate:
             return await asyncio.gather(*tasks)
 
     # Helper methods for async operations with retry and OpenTelemetry tracing
-    @retry_with_backoff
+    @retry_exponential_backoff
     async def _async_fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """
         Helper function for asynchronous training with retry logic and OpenTelemetry tracing.
@@ -160,7 +163,7 @@ class RandomForestTemplate:
             X_scaled = self.scaler.fit_transform(X)
             self.model.fit(X_scaled, y)
 
-    @retry_with_backoff
+    @retry_exponential_backoff
     async def _async_predict(self, X: np.ndarray) -> np.ndarray:
         """
         Helper function for asynchronous prediction with retry logic and OpenTelemetry tracing.
@@ -171,7 +174,7 @@ class RandomForestTemplate:
             X_scaled = self.scaler.transform(X)
             return self.model.predict(X_scaled)
 
-    @retry_with_backoff
+    @retry_exponential_backoff
     async def _async_evaluate(self, X: np.ndarray, y: np.ndarray) -> float:
         """
         Helper function for asynchronous evaluation with retry logic and OpenTelemetry tracing.

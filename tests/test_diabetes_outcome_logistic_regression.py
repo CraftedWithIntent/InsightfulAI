@@ -1,5 +1,5 @@
 """
-InsightfulAI - Logistic Regression Test for Binary Classification Datasets
+InsightfulAI - Logistic Regression Test for Binary Classification Datasets using Public API
 ===========================================================================
 
 Project: InsightfulAI
@@ -8,19 +8,19 @@ Author: Philip Thomas
 Date: 2024-11-13
 
 Description:
-This test suite validates the LogisticRegressionTemplate for various binary classification
-datasets, ensuring the model's performance on prediction and evaluation.
+This test suite validates the InsightfulAI public API for logistic regression models
+on various binary classification datasets, ensuring the model's performance on prediction and evaluation.
 
 """
 
 import unittest
 import pandas as pd
 import numpy as np
-from Templates.Classification.logistic_regression import LogisticRegressionTemplate
+from insightful_ai_api import InsightfulAI  # Import the main API class
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-class TestLogisticRegressionBinaryClassification(unittest.TestCase):
+class TestLogisticRegressionDiabetesOutcome(unittest.TestCase):
     def setUp(self):
         """
         Set up the binary classification test scenario using a real dataset.
@@ -29,13 +29,13 @@ class TestLogisticRegressionBinaryClassification(unittest.TestCase):
         print("\nSetting up binary classification test data and model instance...")
 
         # Specify the dataset file path
-        dataset_path = "tests/datasets/kaggle/Diabetes.csv"  # Update the file path as needed
+        dataset_path = "tests/datasets/kaggle/diabetes_outcome.csv"  # Update the file path as needed
         
         # Load and preprocess the dataset
         self.X_train, self.X_test, self.y_train, self.y_test = self.load_and_preprocess_data(dataset_path)
 
-        # Initialize the Logistic Regression Template
-        self.model = LogisticRegressionTemplate(C=1.0, solver='lbfgs')
+        # Initialize the Logistic Regression model using the public API
+        self.model_api = InsightfulAI(model_type="logistic_regression", C=1.0, solver='lbfgs')
 
     def load_and_preprocess_data(self, file_path):
         """
@@ -62,9 +62,9 @@ class TestLogisticRegressionBinaryClassification(unittest.TestCase):
         """Test model training for binary classification without errors."""
         print("Testing model training (fit) for binary classification...")
         
-        # Act: Train the model
+        # Act: Train the model using the public API
         try:
-            self.model.fit(self.X_train, self.y_train)
+            self.model_api.fit(self.X_train, self.y_train)
             print("Model trained successfully for binary classification.")
         except Exception as e:
             self.fail(f"Model training raised an exception: {e}")
@@ -77,10 +77,10 @@ class TestLogisticRegressionBinaryClassification(unittest.TestCase):
         print("Testing model prediction for binary classification...")
         
         # Arrange: Train the model
-        self.model.fit(self.X_train, self.y_train)
+        self.model_api.fit(self.X_train, self.y_train)
         
-        # Act: Predict outcomes for the test data
-        predictions = self.model.predict(self.X_test)
+        # Act: Predict outcomes for the test data using the public API
+        predictions = self.model_api.predict(self.X_test)
         
         # Print each prediction result
         for i, (features, prediction) in enumerate(zip(self.X_test, predictions), 1):
@@ -95,10 +95,10 @@ class TestLogisticRegressionBinaryClassification(unittest.TestCase):
         print("Testing model evaluation (accuracy) for binary classification...")
         
         # Arrange: Train the model
-        self.model.fit(self.X_train, self.y_train)
+        self.model_api.fit(self.X_train, self.y_train)
         
-        # Act: Evaluate the model
-        accuracy = self.model.evaluate(self.X_test, self.y_test)
+        # Act: Evaluate the model using the public API
+        accuracy = self.model_api.evaluate(self.X_test, self.y_test)
         print(f"Binary classification model accuracy: {accuracy:.2f}")
         
         # Assert: Check that accuracy is within the valid range [0, 1]

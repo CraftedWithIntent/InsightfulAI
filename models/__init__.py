@@ -18,7 +18,13 @@ Usage:
 Add additional classification templates as they are developed to expand the InsightfulAI library.
 """
 
-from .logistic_regression import LogisticRegressionTemplate
-from .random_forest import RandomForestTemplate
+from .logistic_regression_model import LogisticRegressionModel
+from .random_forest_model import RandomForestModel
+from .model_interface import ModelInterface
 
-__all__ = ["LogisticRegressionTemplate", "RandomForestTemplate"]
+__all__ = [
+    "LogisticRegressionModel",
+    "RandomForestModel",
+    "ModelInterface",
+]
+
