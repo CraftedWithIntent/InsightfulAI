@@ -1,35 +1,39 @@
-# model_interface.py
 from abc import ABC, abstractmethod
+from operation_result import OperationResult
+from opentelemetry import trace
 
 class ModelInterface(ABC):
-    """Defines a standard interface for InsightfulAI models, supporting synchronous and asynchronous operations."""
+    """
+    Defines a standard interface for InsightfulAI models, supporting synchronous and asynchronous operations
+    with Railway Oriented Programming (ROP) principles using OperationResult for unified outcome handling.
+    """
     
     @abstractmethod
-    def fit(self, X, y):
-        """Synchronously trains the model on the provided data."""
+    def fit(self, X, y) -> OperationResult[None]:
+        """Synchronously trains the model on the provided data, returning an OperationResult."""
         pass
 
     @abstractmethod
-    def predict(self, X):
-        """Synchronously predicts labels for the provided input data."""
+    def predict(self, X) -> OperationResult:
+        """Synchronously predicts labels for the provided input data, returning an OperationResult."""
         pass
 
     @abstractmethod
-    def evaluate(self, X, y):
-        """Synchronously evaluates the model on the provided test data."""
+    def evaluate(self, X, y) -> OperationResult:
+        """Synchronously evaluates the model on the provided test data, returning an OperationResult."""
         pass
 
     @abstractmethod
-    async def async_fit(self, X, y):
-        """Asynchronously trains the model on the provided data."""
+    async def async_fit(self, X, y) -> OperationResult:
+        """Asynchronously trains the model on the provided data, returning an OperationResult."""
         pass
 
     @abstractmethod
-    async def async_predict(self, X):
-        """Asynchronously predicts labels for the provided input data."""
+    async def async_predict(self, X) -> OperationResult:
+        """Asynchronously predicts labels for the provided input data, returning an OperationResult."""
         pass
 
     @abstractmethod
-    async def async_evaluate(self, X, y):
-        """Asynchronously evaluates the model on the provided test data."""
+    async def async_evaluate(self, X, y) -> OperationResult:
+        """Asynchronously evaluates the model on the provided test data, returning an OperationResult."""
         pass

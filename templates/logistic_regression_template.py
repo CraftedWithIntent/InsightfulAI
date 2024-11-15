@@ -8,7 +8,7 @@ Author: Philip Thomas
 Date: 2024-11-13
 Description: This module provides a customizable Logistic Regression template for binary and multi-class 
              classification tasks, with sync and async support, enhanced error handling, and configurable 
-             retry logic to avoid duplicate processing.
+             retry logic to avoid duplicate processing using Railway Oriented Programming (ROP) principles.
 
 Dependencies:
 - scikit-learn
@@ -31,6 +31,7 @@ from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
 from retry.retry_decorator import retry_exponential_backoff
+from operation_result import OperationResult  # Ensure OperationResult type is defined in your project
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -42,11 +43,6 @@ span_processor = SimpleSpanProcessor(ConsoleSpanExporter())
 trace.get_tracer_provider().add_span_processor(span_processor)
 
 class LogisticRegressionTemplate:
-    """
-    Logistic Regression Template with sync and async support, enhanced error handling,
-    and retry logic for failed batches with exponential backoff.
-    """
-
     def __init__(self, C: float = 1.0, solver: str = 'lbfgs', max_iter: int = 100) -> None:
         if C <= 0:
             raise ValueError("Regularization parameter C must be positive.")
@@ -59,7 +55,7 @@ class LogisticRegressionTemplate:
         self.model = LogisticRegression(C=self.C, solver=self.solver, max_iter=self.max_iter)
         self.scaler = StandardScaler()
 
-    def validate_data(self, X: np.ndarray, y: np.ndarray = None) -> None:
+    def validate_data(self, X: np.ndarray, y: np.ndarray = None) -> bool:
         if not isinstance(X, np.ndarray):
             raise TypeError("X must be a numpy array.")
         if y is not None:
@@ -71,114 +67,95 @@ class LogisticRegressionTemplate:
             raise ValueError("X and y cannot be empty.")
         if np.any(np.isnan(X)) or (y is not None and np.any(np.isnan(y))):
             raise ValueError("X and y cannot contain NaN values.")
-
-    # Apply the retry decorator directly to each method that needs retry logic
-    @retry_exponential_backoff
-    def fit(self, X: np.ndarray, y: np.ndarray) -> None:
-        """
-        Synchronously train the Logistic Regression model with feature scaling and retry logic.
-        """
-        self.validate_data(X, y)
-        with tracer.start_as_current_span("LogisticRegressionTemplate.fit") as span:
-            logging.info("Starting sync training with feature scaling...")
-            self._process_single_batch_fit(X, y)
-            logging.info("Training completed.")
-            span.set_attribute("custom.operation", "fit")
-
-    def _process_single_batch_fit(self, X: np.ndarray, y: np.ndarray) -> None:
-        """
-        Helper function to process a single sync batch fit.
-        """
-        X_scaled = self.scaler.fit_transform(X)
-        self.model.fit(X_scaled, y)
+        return True
 
     @retry_exponential_backoff
-    def predict(self, X: np.ndarray) -> np.ndarray:
-        """
-        Synchronously predict class labels with retry logic.
-        """
-        self.validate_data(X)
-        with tracer.start_as_current_span("LogisticRegressionTemplate.predict") as span:
-            logging.info("Predicting labels (sync)...")
-            result = self._process_single_batch_predict(X)
-            span.set_attribute("custom.operation", "predict")
-            return result
-
-    def _process_single_batch_predict(self, X: np.ndarray) -> np.ndarray:
-        """
-        Helper function to process a single sync batch prediction.
-        """
-        X_scaled = self.scaler.transform(X)
-        return self.model.predict(X_scaled)
-
-    @retry_exponential_backoff
-    def evaluate(self, X: np.ndarray, y_true: np.ndarray) -> float:
-        """
-        Synchronously evaluate accuracy with retry logic.
-        """
-        self.validate_data(X, y_true)
-        with tracer.start_as_current_span("LogisticRegressionTemplate.evaluate") as span:
-            result = self._process_single_batch_evaluate(X, y_true)
-            span.set_attribute("custom.operation", "evaluate")
-            return result
-
-    def _process_single_batch_evaluate(self, X: np.ndarray, y_true: np.ndarray) -> float:
-        """
-        Helper function to process a single sync batch evaluation.
-        """
-        y_pred = self.predict(X)
-        return accuracy_score(y_true, y_pred)
-
-    # Asynchronous Methods with Retry Logic
-    @retry_exponential_backoff
-    async def async_fit(self, X_batches: List[np.ndarray], y_batches: List[np.ndarray]) -> None:
-        """
-        Asynchronously train the Logistic Regression model in batches with retry logic.
-        """
-        processed_batches = set()
-        for batch_idx, (X, y) in enumerate(zip(X_batches, y_batches)):
-            if batch_idx in processed_batches:
-                logging.info(f"Skipping already processed batch {batch_idx}.")
-                continue
+    def fit(self, X: np.ndarray, y: np.ndarray) -> OperationResult[None]:
+        """Train the Logistic Regression model with feature scaling and retry logic."""
+        try:
             self.validate_data(X, y)
-            with tracer.start_as_current_span("LogisticRegressionTemplate.async_fit") as span:
-                await self._process_single_batch_fit(X, y)
-                processed_batches.add(batch_idx)
-                logging.info(f"Batch {batch_idx} processed successfully.")
-                span.set_attribute("custom.operation", "async_fit")
+            with tracer.start_as_current_span("LogisticRegressionTemplate.fit") as span:
+                X_scaled = self.scaler.fit_transform(X)
+                self.model.fit(X_scaled, y)
+                logging.info("Training completed.")
+                return OperationResult.success(None, span)
+        except Exception as e:
+            logging.error(f"Training failed: {e}")
+            return OperationResult.failure(e, span)
 
     @retry_exponential_backoff
-    async def async_predict(self, X_batches: List[np.ndarray]) -> List[np.ndarray]:
-        """
-        Asynchronously predict class labels for multiple batches with retry logic.
-        """
-        predictions = []
-        processed_batches = set()
-        for batch_idx, X in enumerate(X_batches):
-            if batch_idx in processed_batches:
-                logging.info(f"Skipping already processed prediction for batch {batch_idx}.")
-                continue
+    def predict(self, X: np.ndarray) -> OperationResult[np.ndarray]:
+        """Predict class labels with retry logic."""
+        try:
             self.validate_data(X)
-            with tracer.start_as_current_span("LogisticRegressionTemplate.async_predict") as span:
-                predictions.append(await self._process_single_batch_predict(X))
-                processed_batches.add(batch_idx)
-                span.set_attribute("custom.operation", "async_predict")
-        return predictions
+            with tracer.start_as_current_span("LogisticRegressionTemplate.predict") as span:
+                X_scaled = self.scaler.transform(X)
+                predictions = self.model.predict(X_scaled)
+                return OperationResult.success(predictions, span)
+        except Exception as e:
+            logging.error(f"Prediction failed: {e}")
+            return OperationResult.failure(e, span)
 
     @retry_exponential_backoff
-    async def async_evaluate(self, X_batches: List[np.ndarray], y_true_batches: List[np.ndarray]) -> List[float]:
-        """
-        Asynchronously evaluate the accuracy on multiple batches with retry logic.
-        """
-        accuracies = []
-        processed_batches = set()
-        for batch_idx, (X, y_true) in enumerate(zip(X_batches, y_true_batches)):
-            if batch_idx in processed_batches:
-                logging.info(f"Skipping already processed evaluation for batch {batch_idx}.")
-                continue
+    def evaluate(self, X: np.ndarray, y_true: np.ndarray) -> OperationResult[float]:
+        """Evaluate accuracy with retry logic."""
+        try:
             self.validate_data(X, y_true)
+            with tracer.start_as_current_span("LogisticRegressionTemplate.evaluate") as span:
+                y_pred = self.predict(X).result  # Assuming result here is OperationResult
+                accuracy = accuracy_score(y_true, y_pred)
+                return OperationResult.success(accuracy, span)
+        except Exception as e:
+            logging.error(f"Evaluation failed: {e}")
+            return OperationResult.failure(e, span)
+
+    # Asynchronous Methods
+    @retry_exponential_backoff
+    async def async_fit(self, X_batches: List[np.ndarray], y_batches: List[np.ndarray]) -> OperationResult[None]:
+        """Async batch training with retry logic."""
+        try:
+            processed_batches = set()
+            with tracer.start_as_current_span("LogisticRegressionTemplate.async_fit") as span:
+                for batch_idx, (X, y) in enumerate(zip(X_batches, y_batches)):
+                    if batch_idx in processed_batches:
+                        logging.info(f"Skipping batch {batch_idx}.")
+                        continue
+                    self.validate_data(X, y)
+                    X_scaled = self.scaler.fit_transform(X)
+                    self.model.fit(X_scaled, y)
+                    processed_batches.add(batch_idx)
+                logging.info("Async training completed.")
+                return OperationResult.success(None, span)
+        except Exception as e:
+            logging.error(f"Async training failed: {e}")
+            return OperationResult.failure(e, span)
+
+    @retry_exponential_backoff
+    async def async_predict(self, X_batches: List[np.ndarray]) -> OperationResult[List[np.ndarray]]:
+        """Async batch prediction with retry logic."""
+        try:
+            predictions = []
+            with tracer.start_as_current_span("LogisticRegressionTemplate.async_predict") as span:
+                for X in X_batches:
+                    self.validate_data(X)
+                    X_scaled = self.scaler.transform(X)
+                    predictions.append(self.model.predict(X_scaled))
+                return OperationResult.success(predictions, span)
+        except Exception as e:
+            logging.error(f"Async prediction failed: {e}")
+            return OperationResult.failure(e, span)
+
+    @retry_exponential_backoff
+    async def async_evaluate(self, X_batches: List[np.ndarray], y_batches: List[np.ndarray]) -> OperationResult[List[float]]:
+        """Async batch evaluation with retry logic."""
+        try:
+            accuracies = []
             with tracer.start_as_current_span("LogisticRegressionTemplate.async_evaluate") as span:
-                accuracies.append(await self._process_single_batch_evaluate(X, y_true))
-                processed_batches.add(batch_idx)
-                span.set_attribute("custom.operation", "async_evaluate")
-        return accuracies
+                for X, y_true in zip(X_batches, y_batches):
+                    self.validate_data(X, y_true)
+                    y_pred = self.model.predict(self.scaler.transform(X))
+                    accuracies.append(accuracy_score(y_true, y_pred))
+                return OperationResult.success(accuracies, span)
+        except Exception as e:
+            logging.error(f"Async evaluation failed: {e}")
+            return OperationResult.failure(e, span)

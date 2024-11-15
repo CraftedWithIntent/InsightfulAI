@@ -18,6 +18,7 @@ import unittest
 import pandas as pd
 import numpy as np
 from insightful_ai_api import InsightfulAI
+from operation_result import OperationResult  # Assuming OperationResult is defined in the operation_result module
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
@@ -63,37 +64,51 @@ class TestRandomForestTelcoCustomerChurn(unittest.TestCase):
     def test_fit(self):
         """Tests that the model trains on the data without errors."""
         print("Testing model training...")
-        try:
-            self.model.fit(self.X_train, self.y_train)
+        result = self.model.fit(self.X_train, self.y_train)
+        if result.is_success:
             print("Model training completed successfully.\n")
-        except Exception as e:
-            self.fail(f"Model training raised an exception: {e}")
+        else:
+            print(f"Model training failed with error: {result.error}")
+            self.fail("Model training operation raised an error.")
 
     def test_predict(self):
         """Tests that the model makes predictions after training."""
         print("Testing model prediction...")
-        self.model.fit(self.X_train, self.y_train)  # Ensure model is trained before predicting
-        predictions = self.model.predict(self.X_test)
+        fit_result = self.model.fit(self.X_train, self.y_train)
+        if not fit_result.is_success:
+            self.fail(f"Training failed: {fit_result.error}")
         
-        # Output predictions for reference
-        print(f"Predictions: {predictions}")
-        
-        # Assert that the prediction length matches the test set length
-        self.assertEqual(len(predictions), len(self.y_test), "Prediction length mismatch with test data.")
-        print("Prediction test completed successfully.\n")
+        predict_result = self.model.predict(self.X_test)
+        if predict_result.is_success:
+            predictions = predict_result.result
+
+            # If predictions is still wrapped in another OperationResult, unwrap it
+            if isinstance(predictions, OperationResult):
+                predictions = predictions.result  # Unwrap the nested OperationResult
+
+            print(f"Predictions: {predictions}")
+            self.assertEqual(len(predictions.result), len(self.y_test), "Prediction length mismatch with test data.")
+            print("Prediction test completed successfully.\n")
+        else:
+            print(f"Prediction failed with error: {predict_result.error}")
+            self.fail("Prediction operation raised an error.")
 
     def test_evaluate(self):
         """Tests the model's evaluation accuracy on test data."""
         print("Testing model evaluation...")
-        self.model.fit(self.X_train, self.y_train)
-        accuracy = self.model.evaluate(self.X_test, self.y_test)
-        
-        # Output the accuracy result
-        print(f"Evaluation accuracy: {accuracy:.2f}")
-        
-        # Assert that accuracy falls within the valid range [0, 1]
-        self.assertTrue(0 <= accuracy <= 1, "Accuracy should be between 0 and 1.")
-        print("Evaluation test completed successfully.\n")
+        fit_result = self.model.fit(self.X_train, self.y_train)
+        if not fit_result.is_success:
+            self.fail(f"Training failed: {fit_result.error}")
+
+        evaluate_result = self.model.evaluate(self.X_test, self.y_test)
+        if evaluate_result.is_success:
+            accuracy = evaluate_result.result
+            print(f"Evaluation accuracy: {accuracy.result:.2f}")
+            self.assertTrue(0 <= accuracy.result.result <= 1, "Accuracy should be between 0 and 1.")
+            print("Evaluation test completed successfully.\n")
+        else:
+            print(f"Evaluation failed with error: {evaluate_result.error}")
+            self.fail("Evaluation operation raised an error.")
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

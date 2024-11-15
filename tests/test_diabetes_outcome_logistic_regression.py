@@ -9,8 +9,8 @@ Date: 2024-11-13
 
 Description:
 This test suite validates the InsightfulAI public API for logistic regression models
-using a binary classification dataset, ensuring the model's performance on prediction 
-and evaluation. Includes both synchronous and asynchronous tests.
+using a binary classification dataset. It includes both synchronous and asynchronous tests
+to ensure model functionality, performance, and accuracy on prediction and evaluation tasks.
 
 """
 
@@ -18,6 +18,7 @@ import unittest
 import pandas as pd
 import numpy as np
 from insightful_ai_api import InsightfulAI  # Import the main API class
+from operation_result import OperationResult  # Assuming OperationResult is defined in the operation_result module
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import asyncio
@@ -72,38 +73,60 @@ class TestLogisticRegressionBinaryClassification(unittest.TestCase):
     def test_fit_binary_classification(self):
         """Test synchronous model training for binary classification."""
         print("Running synchronous training test for binary classification...")
-        try:
-            self.model_api.fit(self.X_train, self.y_train)
+        
+        result = self.model_api.fit(self.X_train, self.y_train)
+        
+        if result.is_success:
             print("Synchronous model training completed successfully.")
-        except Exception as e:
-            self.fail(f"Model training raised an exception: {e}")
+        else:
+            print(f"Model training failed with error: {result.error}")
+            self.fail("Model training raised an error.")
 
     def test_predict_binary_classification(self):
         """Test synchronous model predictions for binary classification."""
         print("Running synchronous prediction test for binary classification...")
         
         # Train the model
-        self.model_api.fit(self.X_train, self.y_train)
+        fit_result = self.model_api.fit(self.X_train, self.y_train)
+        if not fit_result.is_success:
+            self.fail(f"Training failed: {fit_result.error}")
         
         # Make predictions
-        predictions = self.model_api.predict(self.X_test)
-        
-        # Print predictions for sample verification
-        for i, (features, prediction) in enumerate(zip(self.X_test, predictions), start=1):
-            outcome = "Positive" if prediction == 1 else "Negative"
-            print(f"Sample {i}: Features={features} | Prediction: {outcome}")
+        predict_result = self.model_api.predict(self.X_test)
+        if predict_result.is_success:
+            predictions = predict_result.result
 
-        self.assertEqual(len(predictions), len(self.X_test), "Prediction length does not match test data length.")
+            # Check that predictions is a list and not another OperationResult
+            if isinstance(predictions, OperationResult):
+                predictions = predictions.result
+
+            for i, (features, prediction) in enumerate(zip(self.X_test, predictions), start=1):
+                outcome = "Positive" if prediction == 1 else "Negative"
+                print(f"Sample {i}: Features={features} | Prediction: {outcome}")
+
+            self.assertEqual(len(predictions), len(self.X_test), "Prediction length does not match test data length.")
+        else:
+            print(f"Prediction failed: {predict_result.error}")
+            self.fail("Prediction test failed.")
 
     def test_evaluate_binary_classification(self):
         """Test synchronous model evaluation for binary classification."""
         print("Running synchronous evaluation test for binary classification...")
 
         # Train and evaluate
-        self.model_api.fit(self.X_train, self.y_train)
-        accuracy = self.model_api.evaluate(self.X_test, self.y_test)
-        print(f"Synchronous evaluation accuracy: {accuracy:.2f}")
-        self.assertTrue(0 <= accuracy <= 1, "Accuracy should be between 0 and 1.")
+        fit_result = self.model_api.fit(self.X_train, self.y_train)
+        if not fit_result.is_success:
+            self.fail(f"Training failed: {fit_result.error}")
+
+        evaluate_result = self.model_api.evaluate(self.X_test, self.y_test)
+        if evaluate_result.is_success:
+            accuracy = evaluate_result.result
+            print(f"Synchronous evaluation accuracy: {accuracy:.2f}")
+            self.assertTrue(0 <= accuracy.result <= 1, "Accuracy should be between 0 and 1.")
+        else:
+            print(f"Evaluation failed: {evaluate_result.error}")
+            self.fail("Evaluation test failed.")
+
 
 class TestAsyncLogisticRegressionBinaryClassification(unittest.IsolatedAsyncioTestCase):
     """
@@ -142,37 +165,67 @@ class TestAsyncLogisticRegressionBinaryClassification(unittest.IsolatedAsyncioTe
     async def test_async_fit_binary_classification(self):
         """Test asynchronous model training for binary classification."""
         print("Running asynchronous training test for binary classification...")
-        try:
-            await self.model_api.async_fit(self.X_train, self.y_train)
+        
+        fit_result = await self.model_api.async_fit(self.X_train, self.y_train)
+        if fit_result.is_success:
             print("Asynchronous model training completed successfully.")
-        except Exception as e:
-            self.fail(f"Async model training raised an exception: {e}")
+        else:
+            print(f"Async model training failed with error: {fit_result.error}")
+            self.fail("Async model training raised an error.")
 
     async def test_async_predict_binary_classification(self):
         """Test asynchronous model predictions for binary classification."""
         print("Running asynchronous prediction test for binary classification...")
         
         # Train asynchronously
-        await self.model_api.async_fit(self.X_train, self.y_train)
+        fit_result = await self.model_api.async_fit(self.X_train, self.y_train)
+        if not fit_result.is_success:
+            self.fail(f"Async training failed: {fit_result.error}")
         
         # Make asynchronous predictions
-        predictions = await self.model_api.async_predict(self.X_test)
+        predict_result = await self.model_api.async_predict(self.X_test)
         
-        for i, (features, prediction) in enumerate(zip(self.X_test, predictions), start=1):
-            outcome = "Positive" if prediction == 1 else "Negative"
-            print(f"Sample {i}: Features={features} | Prediction: {outcome}")
+        if predict_result.is_success and predict_result.result is not None:
+            # Access the actual predictions, ensuring predict_result.result is the expected list type
+            predictions = predict_result.result
 
-        self.assertEqual(len(predictions), len(self.X_test), "Async prediction length mismatch.")
+            # If predictions is still wrapped in another OperationResult, unwrap it
+            if isinstance(predictions, OperationResult):
+                predictions = predictions.result  # Unwrap the nested OperationResult
+
+            # Verify that predictions is now a list, otherwise log the issue and fail the test
+            if isinstance(predictions, list):
+                # Now proceed with iteration
+                for i, (features, prediction) in enumerate(zip(self.X_test, predictions), start=1):
+                    outcome = "Positive" if prediction == 1 else "Negative"
+                    print(f"Sample {i}: Features={features} | Prediction: {outcome}")
+
+                # Assert: Check that predictions have the correct length
+                self.assertEqual(len(predictions), len(self.X_test), "Prediction length mismatch with test data.")
+            else:
+                self.fail(f"Unexpected type for predictions after unwrapping: {type(predictions)}. Expected a list.")
+        else:
+            # Log the failure details for easier debugging
+            print(f"predict_result: {predict_result}")
+            self.fail(f"Prediction failed with error: {predict_result.error if predict_result.error else 'No predictions returned'}")
 
     async def test_async_evaluate_binary_classification(self):
         """Test asynchronous model evaluation for binary classification."""
         print("Running asynchronous evaluation test for binary classification...")
         
         # Train asynchronously and evaluate
-        await self.model_api.async_fit(self.X_train, self.y_train)
-        accuracy = await self.model_api.async_evaluate(self.X_test, self.y_test)
-        print(f"Asynchronous evaluation accuracy: {accuracy:.2f}")
-        self.assertTrue(0 <= accuracy <= 1, "Accuracy should be between 0 and 1.")
+        fit_result = await self.model_api.async_fit(self.X_train, self.y_train)
+        if not fit_result.is_success:
+            self.fail(f"Async training failed: {fit_result.error}")
+
+        evaluate_result = await self.model_api.async_evaluate(self.X_test, self.y_test)
+        if evaluate_result.is_success:
+            accuracy = evaluate_result.result
+            print(f"Asynchronous evaluation accuracy: {accuracy:.2f}")
+            self.assertTrue(0 <= accuracy <= 1, "Accuracy should be between 0 and 1.")
+        else:
+            print(f"Async evaluation failed: {evaluate_result.error}")
+            self.fail("Async evaluation test failed.")
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

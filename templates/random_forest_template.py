@@ -1,14 +1,14 @@
 """
-InsightfulAI - Random Forest Template with Sync, Async, and OpenTelemetry Support
-=================================================================================
+InsightfulAI - Random Forest Template with Sync, Async, OpenTelemetry, and ROP Support
+======================================================================================
 
 Project: InsightfulAI
 Repository: https://github.com/CraftedWithIntent/InsightfulAI
 Author: Philip Thomas
 Date: 2024-11-13
 Description: This module provides a customizable Random Forest template for binary and multi-class 
-             classification tasks, with both sync and async support, retry logic, batch processing, 
-             and OpenTelemetry tracing.
+             classification tasks, with sync and async support, retry logic, batch processing, 
+             OpenTelemetry tracing, and Railway Oriented Programming (ROP) principles.
 
 Dependencies:
 - scikit-learn
@@ -17,16 +17,17 @@ Dependencies:
 - opentelemetry-api
 - opentelemetry-sdk
 - opentelemetry-instrumentation
-
 """
 
 import numpy as np
 import logging
 import asyncio
+from typing import List
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
 from retry.retry_decorator import retry_exponential_backoff
+from operation_result import OperationResult
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -38,148 +39,152 @@ span_processor = SimpleSpanProcessor(ConsoleSpanExporter())
 trace.get_tracer_provider().add_span_processor(span_processor)
 
 class RandomForestTemplate:
-    """
-    Encapsulated Random Forest Template with sync and async batch support, retry logic, 
-    customizable parameters, and OpenTelemetry tracing for classification tasks.
-    """
-
-    def __init__(self, n_estimators: int = 100, max_depth: int = None, max_retries: int = 3) -> None:
-        """
-        Initializes the Random Forest Template.
-
-        Parameters:
-        - n_estimators (int): The number of trees in the forest. Default is 100.
-        - max_depth (int): The maximum depth of each tree. Default is None (unrestricted).
-        - max_retries (int): Number of retries for failed operations.
-        """
+    def __init__(self, n_estimators: int = 100, max_depth: int = None) -> None:
         self.n_estimators = n_estimators
         self.max_depth = max_depth
-        self.max_retries = max_retries
         self.model = None
         self.scaler = None
+        self._initialize_model()
 
-    def initialize_model(self):
+    def _initialize_model(self):
+        """Initialize the RandomForestClassifier and scaler."""
         from sklearn.ensemble import RandomForestClassifier
         from sklearn.preprocessing import StandardScaler
         self.model = RandomForestClassifier(n_estimators=self.n_estimators, max_depth=self.max_depth)
         self.scaler = StandardScaler()
 
     @retry_exponential_backoff
-    def fit(self, X: np.ndarray, y: np.ndarray) -> None:
-        """
-        Synchronously trains the Random Forest model with retry logic and OpenTelemetry tracing.
-        """
-        with tracer.start_as_current_span("fit"):
-            if self.model is None:
-                self.initialize_model()
-            X_scaled = self.scaler.fit_transform(X)
-            self.model.fit(X_scaled, y)
-            logging.info("Model training completed successfully.")
+    def fit(self, X: np.ndarray, y: np.ndarray) -> OperationResult[None]:
+        """Synchronously trains the Random Forest model with ROP and OpenTelemetry."""
+        with tracer.start_as_current_span("RandomForestTemplate.fit") as span:
+            try:
+                X_scaled = self.scaler.fit_transform(X)
+                self.model.fit(X_scaled, y)
+                logging.info("Model training completed successfully.")
+                return OperationResult.success(None, span)
+            except Exception as e:
+                logging.error(f"Model training failed: {e}")
+                return OperationResult.failure(e, span)
 
     @retry_exponential_backoff
-    def predict(self, X: np.ndarray) -> np.ndarray:
-        """
-        Synchronously predicts class labels for input data with retry logic and OpenTelemetry tracing.
-        """
-        with tracer.start_as_current_span("predict"):
-            if self.model is None:
-                self.initialize_model()
-            X_scaled = self.scaler.transform(X)
-            predictions = self.model.predict(X_scaled)
-            logging.info("Prediction completed successfully.")
-            return predictions
+    def predict(self, X: np.ndarray) -> OperationResult[np.ndarray]:
+        """Synchronously predicts class labels for input data with ROP and OpenTelemetry."""
+        with tracer.start_as_current_span("RandomForestTemplate.predict") as span:
+            try:
+                X_scaled = self.scaler.transform(X)
+                predictions = self.model.predict(X_scaled)
+                logging.info("Prediction completed successfully.")
+                return OperationResult.success(predictions, span)
+            except Exception as e:
+                logging.error(f"Prediction failed: {e}")
+                return OperationResult.failure(e, span)
 
     @retry_exponential_backoff
-    def evaluate(self, X: np.ndarray, y: np.ndarray) -> float:
-        """
-        Synchronously evaluates the model on input data and true labels with retry logic and OpenTelemetry tracing.
-        """
-        with tracer.start_as_current_span("evaluate"):
-            predictions = self.predict(X)
-            from sklearn.metrics import accuracy_score
-            accuracy = accuracy_score(y, predictions)
-            logging.info(f"Evaluation accuracy: {accuracy:.2f}")
-            return accuracy
+    def evaluate(self, X: np.ndarray, y: np.ndarray) -> OperationResult[float]:
+        """Synchronously evaluates the model on input data with ROP and OpenTelemetry."""
+        with tracer.start_as_current_span("RandomForestTemplate.evaluate") as span:
+            try:
+                predictions_result = self.predict(X)
+                if not predictions_result.success:
+                    return predictions_result  # Propagate failure in prediction
+
+                from sklearn.metrics import accuracy_score
+                accuracy = accuracy_score(y, predictions_result.result)
+                logging.info(f"Evaluation accuracy: {accuracy:.2f}")
+                return OperationResult.success(accuracy, span)
+            except Exception as e:
+                logging.error(f"Evaluation failed: {e}")
+                return OperationResult.failure(e, span)
 
     # Synchronous Batch Processing
-    def fit_batch(self, X_batches: list, y_batches: list) -> None:
-        """
-        Synchronously trains the model on multiple data batches with retry logic and OpenTelemetry tracing.
-        """
-        with tracer.start_as_current_span("fit_batch"):
-            for X, y in zip(X_batches, y_batches):
-                self.fit(X, y)
+    def fit_batch(self, X_batches: List[np.ndarray], y_batches: List[np.ndarray]) -> OperationResult[None]:
+        """Synchronously trains the model on multiple batches with ROP and OpenTelemetry."""
+        with tracer.start_as_current_span("RandomForestTemplate.fit_batch") as span:
+            try:
+                for X, y in zip(X_batches, y_batches):
+                    result = self.fit(X, y)
+                    if not result.success:
+                        return result  # Propagate failure
+                logging.info("Batch training completed successfully.")
+                return OperationResult.success(None, span)
+            except Exception as e:
+                logging.error(f"Batch training failed: {e}")
+                return OperationResult.failure(e, span)
 
-    def predict_batch(self, X_batches: list) -> list:
-        """
-        Synchronously predicts for multiple data batches with retry logic and OpenTelemetry tracing.
-        """
-        with tracer.start_as_current_span("predict_batch"):
-            predictions = [self.predict(X) for X in X_batches]
-            return predictions
+    def predict_batch(self, X_batches: List[np.ndarray]) -> OperationResult[List[np.ndarray]]:
+        """Synchronously predicts for multiple data batches with ROP and OpenTelemetry."""
+        with tracer.start_as_current_span("RandomForestTemplate.predict_batch") as span:
+            try:
+                predictions = [self.predict(X).result for X in X_batches]
+                return OperationResult.success(predictions, span)
+            except Exception as e:
+                logging.error(f"Batch prediction failed: {e}")
+                return OperationResult.failure(e, span)
 
-    def evaluate_batch(self, X_batches: list, y_batches: list) -> list:
-        """
-        Synchronously evaluates the model for multiple data batches with retry logic and OpenTelemetry tracing.
-        """
-        with tracer.start_as_current_span("evaluate_batch"):
-            accuracies = [self.evaluate(X, y) for X, y in zip(X_batches, y_batches)]
-            return accuracies
+    def evaluate_batch(self, X_batches: List[np.ndarray], y_batches: List[np.ndarray]) -> OperationResult[List[float]]:
+        """Synchronously evaluates the model on multiple data batches with ROP and OpenTelemetry."""
+        with tracer.start_as_current_span("RandomForestTemplate.evaluate_batch") as span:
+            try:
+                accuracies = [self.evaluate(X, y).result for X, y in zip(X_batches, y_batches)]
+                return OperationResult.success(accuracies, span)
+            except Exception as e:
+                logging.error(f"Batch evaluation failed: {e}")
+                return OperationResult.failure(e, span)
 
     # Asynchronous Batch Processing
-    async def async_fit(self, X_batches: list, y_batches: list) -> None:
-        """
-        Asynchronously trains the model on multiple data batches with retry logic and OpenTelemetry tracing.
-        """
-        with tracer.start_as_current_span("async_fit"):
-            tasks = [self._async_fit(X, y) for X, y in zip(X_batches, y_batches)]
-            await asyncio.gather(*tasks)
+    async def async_fit(self, X_batches: List[np.ndarray], y_batches: List[np.ndarray]) -> OperationResult[None]:
+        """Asynchronously trains the model on multiple data batches with ROP and OpenTelemetry."""
+        with tracer.start_as_current_span("RandomForestTemplate.async_fit") as span:
+            try:
+                tasks = [self._async_fit(X, y) for X, y in zip(X_batches, y_batches)]
+                await asyncio.gather(*tasks)
+                logging.info("Async batch training completed successfully.")
+                return OperationResult.success(None, span)
+            except Exception as e:
+                logging.error(f"Async batch training failed: {e}")
+                return OperationResult.failure(e, span)
 
-    async def async_predict(self, X_batches: list) -> list:
-        """
-        Asynchronously predicts for multiple data batches with retry logic and OpenTelemetry tracing.
-        """
-        with tracer.start_as_current_span("async_predict"):
-            tasks = [self._async_predict(X) for X in X_batches]
-            return await asyncio.gather(*tasks)
+    async def async_predict(self, X_batches: List[np.ndarray]) -> OperationResult[List[np.ndarray]]:
+        """Asynchronously predicts for multiple data batches with ROP and OpenTelemetry."""
+        with tracer.start_as_current_span("RandomForestTemplate.async_predict") as span:
+            try:
+                tasks = [self._async_predict(X) for X in X_batches]
+                predictions = await asyncio.gather(*tasks)
+                return OperationResult.success(predictions, span)
+            except Exception as e:
+                logging.error(f"Async batch prediction failed: {e}")
+                return OperationResult.failure(e, span)
 
-    async def async_evaluate_batch(self, X_batches: list, y_batches: list) -> list:
-        """
-        Asynchronously evaluates the model for multiple data batches with retry logic and OpenTelemetry tracing.
-        """
-        with tracer.start_as_current_span("async_evaluate_batch"):
-            tasks = [self._async_evaluate(X, y) for X, y in zip(X_batches, y_batches)]
-            return await asyncio.gather(*tasks)
+    async def async_evaluate_batch(self, X_batches: List[np.ndarray], y_batches: List[np.ndarray]) -> OperationResult[List[float]]:
+        """Asynchronously evaluates the model on multiple data batches with ROP and OpenTelemetry."""
+        with tracer.start_as_current_span("RandomForestTemplate.async_evaluate_batch") as span:
+            try:
+                tasks = [self._async_evaluate(X, y) for X, y in zip(X_batches, y_batches)]
+                accuracies = await asyncio.gather(*tasks)
+                return OperationResult.success(accuracies, span)
+            except Exception as e:
+                logging.error(f"Async batch evaluation failed: {e}")
+                return OperationResult.failure(e, span)
 
     # Helper methods for async operations with retry and OpenTelemetry tracing
     @retry_exponential_backoff
     async def _async_fit(self, X: np.ndarray, y: np.ndarray) -> None:
-        """
-        Helper function for asynchronous training with retry logic and OpenTelemetry tracing.
-        """
-        with tracer.start_as_current_span("_async_fit"):
-            if self.model is None:
-                self.initialize_model()
+        """Helper async method for training with retry logic and OpenTelemetry tracing."""
+        with tracer.start_as_current_span("RandomForestTemplate._async_fit"):
             X_scaled = self.scaler.fit_transform(X)
             self.model.fit(X_scaled, y)
 
     @retry_exponential_backoff
     async def _async_predict(self, X: np.ndarray) -> np.ndarray:
-        """
-        Helper function for asynchronous prediction with retry logic and OpenTelemetry tracing.
-        """
-        with tracer.start_as_current_span("_async_predict"):
-            if self.model is None:
-                self.initialize_model()
+        """Helper async method for prediction with retry logic and OpenTelemetry tracing."""
+        with tracer.start_as_current_span("RandomForestTemplate._async_predict"):
             X_scaled = self.scaler.transform(X)
             return self.model.predict(X_scaled)
 
     @retry_exponential_backoff
     async def _async_evaluate(self, X: np.ndarray, y: np.ndarray) -> float:
-        """
-        Helper function for asynchronous evaluation with retry logic and OpenTelemetry tracing.
-        """
-        with tracer.start_as_current_span("_async_evaluate"):
-            y_pred = await self._async_predict(X)
+        """Helper async method for evaluation with retry logic and OpenTelemetry tracing."""
+        with tracer.start_as_current_span("RandomForestTemplate._async_evaluate"):
+            predictions = await self._async_predict(X)
             from sklearn.metrics import accuracy_score
-            return accuracy_score(y, y_pred)
+            return accuracy_score(y, predictions)
