@@ -1,7 +1,24 @@
-# insightful_ai_api.py
+"""
+InsightfulAI - Public API with ROP, Telemetry, and Async Support
+=================================================================
+
+Project: InsightfulAI
+Description: A unified API for machine learning operations, including model training, prediction, and evaluation, 
+             using Railway Oriented Programming, OpenTelemetry, and both sync and async support.
+
+Dependencies:
+- scikit-learn
+- numpy
+- asyncio
+- opentelemetry-api
+- opentelemetry-sdk
+"""
+
 from models.logistic_regression_model import LogisticRegressionModel
 from models.random_forest_model import RandomForestModel
 from models.nlp_model import NLPModel
+from operation_result import OperationResult
+from opentelemetry import trace
 
 class InsightfulAI:
     """
@@ -13,29 +30,10 @@ class InsightfulAI:
       - "logistic_regression" for logistic regression models
       - "random_forest" for random forest models
       - "nlp" for natural language processing tasks
-    - **kwargs: Additional keyword arguments for model configuration, such as:
-      - For logistic regression: C (regularization strength), solver (optimization algorithm)
-      - For random forest: n_estimators (number of trees), max_depth (maximum depth of trees)
-      - For NLP: max_features (max vocabulary size), solver (optimization algorithm)
-
-    Usage:
-    ```
-    # Initialize API with a logistic regression model
-    api = InsightfulAI(model_type="logistic_regression", C=1.0, solver='lbfgs')
-    api.fit(X_train, y_train)
-    predictions = api.predict(X_test)
-    accuracy = api.evaluate(X_test, y_test)
-
-    # Initialize API with an NLP model for text classification
-    api_nlp = InsightfulAI(model_type="nlp", max_features=500, solver='lbfgs')
-    api_nlp.fit(text_batches, label_batches)
-    async_predictions = await api_nlp.async_predict(text_batches)
-    async_accuracy = await api_nlp.async_evaluate(text_batches, label_batches)
-    ```
+    - **kwargs: Additional keyword arguments for model configuration.
     """
 
     def __init__(self, model_type="logistic_regression", **kwargs):
-        # Initialize the appropriate model based on model_type
         if model_type == "logistic_regression":
             self.model = LogisticRegressionModel(**kwargs)
         elif model_type == "random_forest":
@@ -48,80 +46,68 @@ class InsightfulAI:
                 "Choose from 'logistic_regression', 'random_forest', or 'nlp'."
             )
 
-    def fit(self, X, y):
-        """
-        Train the model on the provided data.
+    def fit(self, X, y) -> OperationResult[None]:
+        """Train the model on the provided data and return an OperationResult with telemetry."""
+        tracer = trace.get_tracer(__name__)
+        with tracer.start_as_current_span("fit") as span:
+            try:
+                self.model.fit(X, y)
+                return OperationResult.success(None, span)
+            except Exception as e:
+                span.record_exception(e)
+                return OperationResult.failure(e, span)
 
-        Parameters:
-        - X: The feature matrix (e.g., a NumPy array or list of lists).
-        - y: The target labels or values (e.g., a list or array of labels).
+    def predict(self, X) -> OperationResult:
+        """Predict labels or values for new data and return an OperationResult with telemetry."""
+        tracer = trace.get_tracer(__name__)
+        with tracer.start_as_current_span("predict") as span:
+            try:
+                result = self.model.predict(X)
+                return OperationResult.success(result, span)
+            except Exception as e:
+                span.record_exception(e)
+                return OperationResult.failure(e, span)
 
-        Returns:
-        - self: Returns the instance for method chaining.
-        """
-        self.model.fit(X, y)
-        return self
+    def evaluate(self, X, y) -> OperationResult[float]:
+        """Evaluate the model on test data and return an OperationResult with telemetry."""
+        tracer = trace.get_tracer(__name__)
+        with tracer.start_as_current_span("evaluate") as span:
+            try:
+                score = self.model.evaluate(X, y)
+                return OperationResult.success(score, span)
+            except Exception as e:
+                span.record_exception(e)
+                return OperationResult.failure(e, span)
 
-    def predict(self, X):
-        """
-        Predict labels or values for new data.
+    async def async_fit(self, X_batches, y_batches) -> OperationResult[None]:
+        """Asynchronously train the model on multiple batches and return an OperationResult with telemetry."""
+        tracer = trace.get_tracer(__name__)
+        with tracer.start_as_current_span("async_fit") as span:
+            try:
+                await self.model.async_fit(X_batches, y_batches)
+                return OperationResult.success("Async fit completed", span)
+            except Exception as e:
+                span.record_exception(e)
+                return OperationResult.failure(e, span)
 
-        Parameters:
-        - X: The feature matrix for which predictions are required.
+    async def async_predict(self, X_batches) -> OperationResult:
+        """Asynchronously predict labels or values for multiple batches and return an OperationResult with telemetry."""
+        tracer = trace.get_tracer(__name__)
+        with tracer.start_as_current_span("async_predict") as span:
+            try:
+                predictions = await self.model.async_predict(X_batches)
+                return OperationResult.success(predictions, span)
+            except Exception as e:
+                span.record_exception(e)
+                return OperationResult.failure(e, span)
 
-        Returns:
-        - predictions: Predicted labels or values for the data in X.
-        """
-        return self.model.predict(X)
-
-    def evaluate(self, X, y):
-        """
-        Evaluate the model on test data to return an accuracy score or other metric.
-
-        Parameters:
-        - X: The feature matrix for evaluation.
-        - y: The true labels for the test data.
-
-        Returns:
-        - score: The evaluation score (e.g., accuracy for classification) of the model on the test data.
-        """
-        return self.model.evaluate(X, y)
-
-    async def async_fit(self, X_batches, y_batches):
-        """
-        Asynchronously train the model on multiple batches of data, supporting NLP and other batch models.
-
-        Parameters:
-        - X_batches: List of feature matrices, each representing a batch of data.
-        - y_batches: List of target vectors, each representing a batch of labels.
-
-        Returns:
-        - self: Returns the instance for method chaining.
-        """
-        await self.model.async_fit(X_batches, y_batches)
-        return self
-
-    async def async_predict(self, X_batches):
-        """
-        Asynchronously predict labels or values for multiple batches of data.
-
-        Parameters:
-        - X_batches: List of feature matrices, each representing a batch of data.
-
-        Returns:
-        - List of predictions for each batch of data in X_batches.
-        """
-        return await self.model.async_predict(X_batches)
-
-    async def async_evaluate(self, X_batches, y_batches):
-        """
-        Asynchronously evaluate the model on multiple batches of data to return accuracy or another metric.
-
-        Parameters:
-        - X_batches: List of feature matrices for evaluation.
-        - y_batches: List of true label vectors for each batch of data.
-
-        Returns:
-        - List of evaluation scores (e.g., accuracy) for each batch.
-        """
-        return await self.model.async_evaluate(X_batches, y_batches)
+    async def async_evaluate(self, X_batches, y_batches) -> OperationResult:
+        """Asynchronously evaluate the model on multiple batches and return an OperationResult with telemetry."""
+        tracer = trace.get_tracer(__name__)
+        with tracer.start_as_current_span("async_evaluate") as span:
+            try:
+                evaluations = await self.model.async_evaluate(X_batches, y_batches)
+                return OperationResult.success(evaluations, span)
+            except Exception as e:
+                span.record_exception(e)
+                return OperationResult.failure(e, span)

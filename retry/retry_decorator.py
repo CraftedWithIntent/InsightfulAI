@@ -8,44 +8,49 @@ Author: Philip Thomas
 Date: 2024-11-13
 
 Description:
-This module provides a decorator function, `retry_exponential_backoff`, that wraps any function with retry logic. 
-If an exception occurs, the decorator will retry the function up to a maximum of three attempts. Each retry 
-waits for an exponentially increasing backoff time (2^attempt seconds) before the next attempt. 
-If all retries fail, an error is logged, and the exception is raised.
+This module provides a decorator function, `retry_exponential_backoff`, which applies retry logic to any function. 
+When an exception is raised during the function's execution, the decorator retries up to a specified number of attempts, 
+with an exponentially increasing backoff time (2^attempt seconds) between retries. If all retries fail, an error 
+is logged, and the exception is raised.
 
 Usage:
-Apply the `@retry_exponential_backoff` decorator to any function where transient errors are expected 
-(e.g., network calls, API requests). This will log each attempt and wait before retrying in case of failure.
+Apply `@retry_exponential_backoff` to functions where transient errors may occur (e.g., network calls, database queries).
+This will log each retry attempt, wait with exponential backoff, and ultimately raise an error if retries are exhausted.
 
 Parameters:
-- `func` (callable): The function to be wrapped with retry logic.
+- `func` (callable): The function to wrap with retry logic.
 
 Example:
 ```python
 @retry_exponential_backoff
 def risky_operation():
-    # Function code that may raise an exception
+    # Code that may raise an exception
     pass
+
 """
 
+from functools import wraps
 import time
 import logging
 
 def retry_exponential_backoff(func):
+    @wraps(func)
     def wrapper(*args, **kwargs):
         max_retries = 3
-        attempts = 0
-        while attempts < max_retries:
+        for attempt in range(1, max_retries + 1):
             try:
                 return func(*args, **kwargs)
             except Exception as e:
-                attempts += 1
-                logging.error(f"Attempt {attempts} failed with error: {e}")
-                if attempts < max_retries:
-                    wait_time = 2 ** attempts  # Exponential backoff
-                    logging.info(f"Retrying in {wait_time} seconds...")
-                    time.sleep(wait_time)
-                else:
-                    logging.error("Max retries reached.")
+                logging.error(f"Attempt {attempt} for {func.__name__} failed with error: {e}")
+                
+                # If max retries reached, log error and raise exception
+                if attempt == max_retries:
+                    logging.error(f"{func.__name__} failed after {max_retries} attempts. Raising exception.")
                     raise
+                
+                # Calculate and log backoff wait time
+                wait_time = 2 ** attempt
+                logging.info(f"Retrying {func.__name__} in {wait_time} seconds (attempt {attempt + 1} of {max_retries})...")
+                time.sleep(wait_time)
+    
     return wrapper
