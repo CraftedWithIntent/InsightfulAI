@@ -95,7 +95,7 @@ class InsightfulAI:
         tracer = trace.get_tracer(__name__)
         with tracer.start_as_current_span("async_predict") as span:
             try:
-                predictions = await self.model.async_predict(X_batches)
+                predictions = await self.model.async_predict(X_batches)  # Should return a list of predictions
                 return OperationResult.success(predictions, span)
             except Exception as e:
                 span.record_exception(e)
