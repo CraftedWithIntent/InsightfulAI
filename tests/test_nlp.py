@@ -90,22 +90,17 @@ class TestNLPModel(unittest.IsolatedAsyncioTestCase):
     def test_e2e_sync_with_rop_bind(self):
         """End-to-end test for synchronous fit, predict, and evaluate calls using ROP and bind."""
         
-        tracer = trace.get_tracer(__name__)
-        with tracer.start_as_current_span("e2e_test") as span:
-            # Set the span as the current span in context
-            with trace.use_span(span, end_on_exit=True):
-                # Now we can run operations without explicitly passing `span`
-                result = (
-                    self.model.fit(self.texts, self.labels)
-                    .bind(lambda _: self.model.predict(self.texts))
-                    .bind(lambda predictions: self._validate_predictions(predictions, self.texts))
-                    .bind(lambda _: self.model.evaluate(self.texts, self.labels))
-                    .bind(self._validate_accuracy)
-                )
+        result = (
+            self.model.fit(self.texts, self.labels)
+            .bind(lambda _: self.model.predict(self.texts))
+            .bind(lambda predictions: self._validate_predictions(predictions, self.texts))
+            .bind(lambda _: self.model.evaluate(self.texts, self.labels))
+            .bind(self._validate_accuracy)
+        )
 
-                print("result: ", result.span)
-                if not result.is_success:
-                    self.fail(f"Test failed with error: {result.error}")
+        print("result: ", result.span)
+        if not result.is_success:
+            self.fail(f"Test failed with error: {result.error}")
 
     def _validate_predictions(self, predictions, texts):
         """Helper to validate predictions."""
@@ -136,7 +131,7 @@ class TestNLPModel(unittest.IsolatedAsyncioTestCase):
             results = result.result
             print(f"{operation_name.capitalize()}:", results)
         else:
-            print(f"{operation_name.capitalize()} operation failed with error: {predict_result.error}")
+            print(f"{operation_name.capitalize()} operation failed with error: {result.error}")
             self.fail(f"{operation_name.capitalize()} operation raised an error.")
 
 if __name__ == '__main__':
