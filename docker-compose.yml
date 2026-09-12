@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  insightful-ai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: insightful-ai:0.3.0a1
+    container_name: insightful-ai-dev
+    command: python -c "from insightful_ai_api import InsightfulAI; print('InsightfulAI ready'); import time; time.sleep(3600)"
+    environment:
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - ./:/workspace
+      - ./tests:/workspace/tests
+    ports:
+      - "8000:8000"
+    user: "1000"
+    networks:
+      - insightful-network
+
+networks:
+  insightful-network:
+    driver: bridge
