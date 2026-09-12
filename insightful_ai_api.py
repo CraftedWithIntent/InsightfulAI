@@ -14,6 +14,8 @@ Dependencies:
 - opentelemetry-sdk
 """
 
+from typing import Any, List, Union
+import numpy as np
 from models.logistic_regression_model import LogisticRegressionModel
 from models.random_forest_model import RandomForestModel
 from models.nlp_model import NLPModel
@@ -33,7 +35,7 @@ class InsightfulAI:
     - **kwargs: Additional keyword arguments for model configuration.
     """
 
-    def __init__(self, model_type="logistic_regression", **kwargs):
+    def __init__(self, model_type: str = "logistic_regression", **kwargs: Any) -> None:
         if model_type == "logistic_regression":
             self.model = LogisticRegressionModel(**kwargs)
         elif model_type == "random_forest":
