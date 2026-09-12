@@ -32,11 +32,16 @@ def risky_operation():
 from functools import wraps
 import time
 import logging
+from typing import Any, Callable, TypeVar
 
-def retry_exponential_backoff(func):
+# Type variable for generic function wrapping
+F = TypeVar('F', bound=Callable[..., Any])
+
+def retry_exponential_backoff(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
-    def wrapper(*args, **kwargs):
-        max_retries = 3
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        """Wrapper with retry logic."""
+        max_retries: int = 3
         for attempt in range(1, max_retries + 1):
             try:
                 return func(*args, **kwargs)
@@ -49,7 +54,7 @@ def retry_exponential_backoff(func):
                     raise
                 
                 # Calculate and log backoff wait time
-                wait_time = 2 ** attempt
+                wait_time: int = 2 ** attempt
                 logging.info(f"Retrying {func.__name__} in {wait_time} seconds (attempt {attempt + 1} of {max_retries})...")
                 time.sleep(wait_time)
     
